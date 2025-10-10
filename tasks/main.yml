@@ -1,0 +1,41 @@
+- name: Install software that is required for Minecraft
+  ansible.builtin.package:
+    name: [ git, openjdk-17-jre-headless, polkitd ]
+
+- name: Checking out git repo with the setup scripts
+  ansible.builtin.git:
+    dest: MinecraftBedrockServer
+    repo: https://github.com/TheRemote/MinecraftBedrockServer
+
+- name: Patch install scripts to not require user interaction
+  block:
+    - name: Use the locally modified script instead of replacing it with the unmodified version from GitHub
+      ansible.builtin.replace:
+        path: MinecraftBedrockServer/SetupMinecraft.sh
+        regexp: 'e "SetupMinecraft.sh'
+        replace: 'e "DISABLED'
+    - name: Do not prompt for the name of the service
+      ansible.builtin.replace:
+        path: MinecraftBedrockServer/SetupMinecraft.sh
+        regexp: 'read_with_prompt ServerName.*' 
+        replace: 'ServerName="{{ minecraft_be_service_name }}"'
+    - name: Do not prompt for the IPv4 port
+      ansible.builtin.replace:
+        path: MinecraftBedrockServer/SetupMinecraft.sh
+        regexp: 'read_with_prompt PortIPV4.* 19132'
+        replace: 'PortIPV4="{{ minecraft_be_ipv4_port }}"'
+    - name: Do not prompt for the IPv6 port
+      ansible.builtin.replace:
+        path: MinecraftBedrockServer/SetupMinecraft.sh
+        regexp: 'read_with_prompt PortIPV6.*'
+        replace: 'PortIPV6="{{ minecraft_be_ipv6_port }}"'
+    - name: Automatically confirm all questions
+      ansible.builtin.replace:
+        path: MinecraftBedrockServer/SetupMinecraft.sh
+        regexp: 'read answer'
+        replace: 'answer=y #/g'
+
+- name: Running setup scripts
+  ansible.builtin.shell:
+    chdir: MinecraftBedrockServer
+    cmd: ./SetupMinecraft.sh
