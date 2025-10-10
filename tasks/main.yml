@@ -1,11 +1,13 @@
 - name: Install software that is required for Minecraft
   ansible.builtin.package:
-    name: [ git, openjdk-17-jre-headless, polkitd ]
+    name: [git, openjdk-17-jre-headless, polkitd]
 
 - name: Checking out git repo with the setup scripts
   ansible.builtin.git:
     dest: MinecraftBedrockServer
     repo: https://github.com/TheRemote/MinecraftBedrockServer
+    version: e7f889952a82c7206a521c4b1eee83ba55270790
+    update: false  # don't overwrite out modifications
 
 - name: Patch install scripts to not require user interaction
   block:
@@ -17,7 +19,7 @@
     - name: Do not prompt for the name of the service
       ansible.builtin.replace:
         path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'read_with_prompt ServerName.*' 
+        regexp: 'read_with_prompt ServerName.*'
         replace: 'ServerName="{{ minecraft_be_service_name }}"'
     - name: Do not prompt for the IPv4 port
       ansible.builtin.replace:
@@ -36,6 +38,7 @@
         replace: 'answer=y #/g'
 
 - name: Running setup scripts
-  ansible.builtin.shell:
+  ansible.builtin.command:
     chdir: MinecraftBedrockServer
     cmd: ./SetupMinecraft.sh
+  changed_when: true

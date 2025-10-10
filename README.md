@@ -10,7 +10,7 @@ on the local machine. It does not require you have SSH running.
   connection: local
   become: true
   roles:
-    - role: hax0rbana-adam.minecraft-bedrock-edition
+    - role: hax0rbana_adam.minecraft_bedrock_edition
 ```
 
 # Official repo location
