@@ -40,8 +40,12 @@
 - name: Checking to see if the systemd service already exists
   ansible.builtin.service_facts:
 
+- name: Creating full name of the minecraft service being deployed
+  ansible.builtin.set_fact:
+    minecraft_be_full_service_name: "{{ minecraft_be_service_name }}.service"
+
 - name: Running setup scripts
-  when: not minecraft_be_service_name in services
+  when: not minecraft_be_full_service_name in services
   ansible.builtin.command:
     chdir: MinecraftBedrockServer
     cmd: ./SetupMinecraft.sh
