@@ -37,7 +37,11 @@
         regexp: 'read answer'
         replace: 'answer=y #/g'
 
+- name: Checking to see if the systemd service already exists
+  ansible.builtin.service_facts:
+
 - name: Running setup scripts
+  when: not minecraft_be_service_name in services
   ansible.builtin.command:
     chdir: MinecraftBedrockServer
     cmd: ./SetupMinecraft.sh
