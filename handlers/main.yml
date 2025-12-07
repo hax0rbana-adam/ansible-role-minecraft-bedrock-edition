@@ -1,0 +1,13 @@
+# Lightweight service restart
+- name: Restarting systemd service
+  ansible.builtin.systemd:
+    name: "{{ minecraft_be_service_name }}"
+    state: restarted
+
+# We need a few extra things for the initial .service file deployment
+- name: Deploying systemd service
+  ansible.builtin.systemd:
+    name: "{{ minecraft_be_service_name }}"
+    daemon_reload: true
+    enabled: true
+    state: restarted

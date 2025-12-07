@@ -1,3 +1,20 @@
 minecraft_be_service_name: minecraft
 minecraft_be_ipv4_port: 19132
 minecraft_be_ipv6_port: 19133
+
+# Systemd settings
+minecraft_be_user: minecraft
+minecraft_be_dir: /opt/minecraftbe
+
+# https://net-secondary.web.minecraft-services.net/api/v1.0/download/links
+minecraft_be_version: 1.21.124.2
+minecraft_be_url: https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-{{ minecraft_be_version }}.zip
+minecraft_be_force_install: false
+minecraft_be_preserve_files:
+  - server.properties
+  - permissions.json
+  - allowlist.json
+  - valid_known_packs.json
+minecraft_be_allowlist: '[]'
+minecraft_be_permissions: '[]'
+minecraft_be_content_logging: "true"

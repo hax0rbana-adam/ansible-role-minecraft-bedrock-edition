@@ -1,0 +1,31 @@
+[Unit]
+Description=servername Minecraft Bedrock Server
+After=network-online.target
+
+[Service]
+User={{ minecraft_be_user }}
+WorkingDirectory={{ minecraft_be_dir }}
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# We start the server in a screen session so we can send commands to it later
+ExecStart=/usr/bin/screen -L -Logfile /dev/log -DmS "{{ minecraft_be_service_name }}" /bin/bash -c "{{ minecraft_be_dir }}/bedrock_server"
+
+ExecReload=/usr/bin/screen -p 0 -S "{{ minecraft_be_service_name }}" -X stuff "reload^M"
+
+ExecStop=/usr/bin/screen -p 0 -S "{{ minecraft_be_service_name }}" -X stuff "say Server shutting down...^M"
+# The stop command will save all changes to disk https://minecraft.wiki/w/Commands/stop
+ExecStop=/usr/bin/screen -p 0 -S "{{ minecraft_be_service_name }}" -X stuff "stop^M"
+# Attach to screen so we wait a few milliseconds so the server can process that "stop" command
+ExecStop=/usr/bin/screen -r "{{ minecraft_be_service_name }}"
+# This will block until screen terminates, which should be less than a second
+ExecStopPost=/usr/bin/screen -p 0 -S "{{ minecraft_be_service_name }}" -X quit
+
+GuessMainPID=no
+TimeoutStartSec=1800
+
+[Install]
+WantedBy=multi-user.target

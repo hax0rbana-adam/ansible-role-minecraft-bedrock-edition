@@ -1,53 +1,84 @@
 - name: Install software that is required for Minecraft
   become: true
   ansible.builtin.package:
-    name: [git, openjdk-17-jre-headless, polkitd]
+    name: [openjdk-17-jre-headless, polkitd]
 
-- name: Checking out git repo with the setup scripts
-  ansible.builtin.git:
-    dest: MinecraftBedrockServer
-    repo: https://github.com/TheRemote/MinecraftBedrockServer
-    version: e7f889952a82c7206a521c4b1eee83ba55270790
-    update: false  # don't overwrite out modifications
+- name: Making sure the service user exists
+  ansible.builtin.user:
+    name: "{{ minecraft_be_user }}"
+    state: present
+    password: "*"
 
-- name: Patch install scripts to not require user interaction
-  block:
-    - name: Use the locally modified script instead of replacing it with the unmodified version from GitHub
-      ansible.builtin.replace:
-        path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'e "SetupMinecraft.sh'
-        replace: 'e "DISABLED'
-    - name: Do not prompt for the name of the service
-      ansible.builtin.replace:
-        path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'read_with_prompt ServerName.*'
-        replace: 'ServerName="{{ minecraft_be_service_name }}"'
-    - name: Do not prompt for the IPv4 port
-      ansible.builtin.replace:
-        path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'read_with_prompt PortIPV4.* 19132'
-        replace: 'PortIPV4="{{ minecraft_be_ipv4_port }}"'
-    - name: Do not prompt for the IPv6 port
-      ansible.builtin.replace:
-        path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'read_with_prompt PortIPV6.*'
-        replace: 'PortIPV6="{{ minecraft_be_ipv6_port }}"'
-    - name: Automatically confirm all questions
-      ansible.builtin.replace:
-        path: MinecraftBedrockServer/SetupMinecraft.sh
-        regexp: 'read answer'
-        replace: 'answer=y #/g'
+- name: Make sure we have our working directory
+  ansible.builtin.file:
+    path: "{{ minecraft_be_dir }}"
+    state: directory
+    owner: "{{ minecraft_be_user }}"
+    mode: "755"
 
-- name: Checking to see if the systemd service already exists
-  ansible.builtin.service_facts:
+- name: Checking to see if we have a server configuration file
+  ansible.builtin.stat:
+    path: "{{ minecraft_be_dir }}/server.properties"
+  register: config_file
 
-- name: Creating full name of the minecraft service being deployed
-  ansible.builtin.set_fact:
-    minecraft_be_full_service_name: "{{ minecraft_be_service_name }}.service"
+- name: Downloading Minecraft
+  when: minecraft_be_force_install or not config_file.stat.exists
+  ansible.builtin.unarchive:
+    remote_src: true
+    src: "{{ minecraft_be_url }}"
+    dest: "{{ minecraft_be_dir }}"
+    exclude: "{{ minecraft_be_preserve_files }}"
+    owner: "{{ minecraft_be_user }}"
 
-- name: Running setup scripts
-  when: not minecraft_be_full_service_name in services
-  ansible.builtin.command:
-    chdir: MinecraftBedrockServer
-    cmd: ./SetupMinecraft.sh
-  changed_when: true
+- name: Creating allowlist.json
+  ansible.builtin.copy:
+    content: '{{ minecraft_be_allowlist }}'
+    dest: "{{ minecraft_be_dir }}/allowlist.json"
+    owner: "{{ minecraft_be_user }}"
+    mode: "600"
+  notify: Restarting systemd service
+
+- name: Creating permissions.json
+  ansible.builtin.copy:
+    content: '{{ minecraft_be_permissions }}'
+    dest: "{{ minecraft_be_dir }}/permissions.json"
+    owner: "{{ minecraft_be_user }}"
+    mode: "600"
+  notify: Restarting systemd service
+
+- name: Creating server.properties
+  when: not config_file.stat.exists
+  ansible.builtin.copy:
+    content: ''
+    dest: "{{ minecraft_be_dir }}/server.properties"
+    owner: "{{ minecraft_be_user }}"
+    mode: "600"
+  notify: Restarting systemd service
+
+- name: Setting whether to log content errors
+  ansible.builtin.lineinfile:
+    line: content-log-file-enabled={{ minecraft_be_content_logging }}
+    dest: "{{ minecraft_be_dir }}/server.properties"
+  notify: Restarting systemd service
+
+- name: Setting server port for IPv4
+  ansible.builtin.lineinfile:
+    dest: "{{ minecraft_be_dir }}/server.properties"
+    regex: server-port=.*
+    line: server-port={{ minecraft_be_ipv4_port }}
+  notify: Restarting systemd service
+
+- name: Setting server port for IPv6
+  ansible.builtin.lineinfile:
+    dest: "{{ minecraft_be_dir }}/server.properties"
+    regex: server-portv6=.*
+    line: server-portv6={{ minecraft_be_ipv6_port }}
+  notify: Restarting systemd service
+
+- name: Deploying systemd service file
+  ansible.builtin.template:
+    src: templates/minecraftbe.service.j2
+    dest: /etc/systemd/system/{{ minecraft_be_service_name }}.service
+    owner: root
+    mode: "644"
+  notify: Deploying systemd service
