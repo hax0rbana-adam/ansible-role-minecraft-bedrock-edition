@@ -15,6 +15,7 @@
     state: directory
     owner: "{{ minecraft_be_user }}"
     mode: "755"
+    creates: "{{ minecraft_be_dir }}/bedrock_server"
 
 - name: Checking to see if we have a server configuration file
   ansible.builtin.stat:
@@ -57,6 +58,7 @@
 
 - name: Setting whether to log content errors
   ansible.builtin.lineinfile:
+    regex: '^content-log-file-enabled='
     line: content-log-file-enabled={{ minecraft_be_content_logging }}
     dest: "{{ minecraft_be_dir }}/server.properties"
   notify: Restarting systemd service
@@ -64,14 +66,14 @@
 - name: Setting server port for IPv4
   ansible.builtin.lineinfile:
     dest: "{{ minecraft_be_dir }}/server.properties"
-    regex: server-port=.*
+    regex: '^server-port=.*'
     line: server-port={{ minecraft_be_ipv4_port }}
   notify: Restarting systemd service
 
 - name: Setting server port for IPv6
   ansible.builtin.lineinfile:
     dest: "{{ minecraft_be_dir }}/server.properties"
-    regex: server-portv6=.*
+    regex: '^server-portv6=.*'
     line: server-portv6={{ minecraft_be_ipv6_port }}
   notify: Restarting systemd service
 
