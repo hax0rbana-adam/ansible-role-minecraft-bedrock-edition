@@ -20,3 +20,4 @@ minecraft_be_preserve_files:
 minecraft_be_allowlist: '[]'
 minecraft_be_permissions: '[]'
 minecraft_be_content_logging: "true"
+minecraft_be_java_version: 25

@@ -1,7 +1,7 @@
 - name: Install software that is required for Minecraft
   become: true
   ansible.builtin.package:
-    name: [openjdk-17-jre-headless, polkitd]
+    name: [openjdk-{{ minecraft_be_java_version }}-jre-headless, polkitd]
 
 - name: Making sure the service user exists
   become: true
