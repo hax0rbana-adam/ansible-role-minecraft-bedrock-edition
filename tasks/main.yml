@@ -4,6 +4,7 @@
     name:
       - openjdk-{{ minecraft_be_java_version }}-jre-headless
       - polkitd
+      - screen
       - unzip
 
 - name: Making sure the service user exists
