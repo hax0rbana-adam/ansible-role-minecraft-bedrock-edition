@@ -11,6 +11,7 @@
     password: "*"
 
 - name: Make sure we have our working directory
+  become: true
   ansible.builtin.file:
     path: "{{ minecraft_be_dir }}"
     state: directory
